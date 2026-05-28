@@ -1,5 +1,4 @@
-from sqlite3 import IntegrityError
-
+from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
