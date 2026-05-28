@@ -1,3 +1,5 @@
+from sqlite3 import IntegrityError
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -27,9 +29,33 @@ def create_address(
         longitude=address.longitude
     )
 
-    db.add(new_address)
-    db.commit()
-    db.refresh(new_address)
+    try:
+        db.add(new_address)
+        db.commit()
+        db.refresh(new_address)
+
+    except IntegrityError:
+        db.rollback()
+
+        logger.warning(
+            "Duplicate coordinates detected "
+            f"lat={address.latitude}, lon={address.longitude}"
+        )
+
+        raise HTTPException(
+            status_code=409,
+            detail="Address with these coordinates already exists"
+        )
+
+    except Exception as e:
+        db.rollback()
+
+        logger.exception("Unexpected database error during post operation")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )
 
     logger.info(f"Address created with id={new_address.id}")
 
@@ -121,8 +147,33 @@ def update_address(
     for key, value in update_data.items():
         setattr(address, key, value)
 
-    db.commit()
-    db.refresh(address)
+
+    try:
+        db.commit()
+        db.refresh(address)
+
+    except IntegrityError:
+        db.rollback()
+
+        logger.warning(
+            f"Duplicate coordinates on update id={address_id} "
+            f"lat={address.latitude}, lon={address.longitude}"
+        )
+
+        raise HTTPException(
+            status_code=409,
+            detail="Another address already uses these coordinates"
+        )
+
+    except Exception as e:
+        db.rollback()
+
+        logger.exception("Unexpected database error during put operation")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )
 
     logger.info(f"Address updated id={address_id}")
 
@@ -141,8 +192,19 @@ def delete_address(address_id: int, db: Session = Depends(get_db)):
             detail=f"Address not found id={address_id}"
         )
 
-    db.delete(address)
-    db.commit()
+    try:
+        db.delete(address)
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+
+        logger.exception("Unexpected database error during delete operation")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )
 
     logger.info(f"Address deleted id={address_id}")
 

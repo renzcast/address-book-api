@@ -1,10 +1,18 @@
-from sqlalchemy import Column, Float, Integer, String, DateTime
+from sqlalchemy import Column, Float, Integer, String, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 from app.database import Base
 
 
 class Address(Base):
     __tablename__ = "addresses"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "latitude",
+            "longitude",
+            name="uq_address_coordinates"
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
