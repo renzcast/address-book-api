@@ -7,4 +7,11 @@ app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
 
+# Initialize demo data
+db = SessionLocal()
+try:
+    seed_demo_data(db)
+finally:
+    db.close()
+
 app.include_router(address_router)
