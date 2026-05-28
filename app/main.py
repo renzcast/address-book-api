@@ -6,3 +6,5 @@ from app.seed_data import seed_demo_data
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
+
+app.include_router(address_router)
