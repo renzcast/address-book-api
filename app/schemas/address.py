@@ -30,5 +30,11 @@ class AddressResponse(AddressBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+class AddressListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[AddressResponse]
+
 class NearbyAddressResponse(AddressResponse):
     distance_km: float

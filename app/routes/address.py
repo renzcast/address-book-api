@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.address import Address
-from app.schemas.address import AddressCreate, AddressResponse, AddressUpdate, NearbyAddressResponse
+from app.schemas.address import AddressCreate, AddressResponse, AddressUpdate, NearbyAddressResponse, \
+    AddressListResponse
 from app.utils.logger import logger
 from geopy.distance import geodesic
 
@@ -60,12 +61,27 @@ def create_address(
 
     return new_address
 
-@router.get("", response_model=list[AddressResponse])
-def get_addresses(db: Session = Depends(get_db)):
+@router.get("", response_model=AddressListResponse)
+def get_addresses(
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    logger.info(f"Fetching addresses limit={limit}, offset={offset}")
 
-    logger.info("Fetching all addresses")
+    total = db.query(Address).count()
 
-    return db.query(Address).all()
+    addresses = (
+        db.query(Address).offset(offset)
+        .limit(limit).all()
+    )
+
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": addresses
+    }
 
 @router.get("/nearby", response_model=list[NearbyAddressResponse], response_model_exclude_none=True)
 def nearby_addresses(
